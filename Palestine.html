@@ -1,0 +1,1676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stand With Palestine</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&family=Cinzel:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0a0a0a;
+    --red: #ce1126;
+    --green: #007a3d;
+    --white: #f5f0e8;
+    --gold: #c8a96e;
+    --cream: #f5f0e8;
+    --deep-blue: #050810;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    width: 100%;
+    background: var(--black);
+    cursor: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  canvas { display: block; }
+
+  /* ── Custom cursor ── */
+  #cursor {
+    position: fixed; top: 0; left: 0;
+    width: 40px; height: 40px;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s linear;
+  }
+  #cursor svg { width: 100%; height: 100%; }
+
+  /* ── Hero / 3D Scene ── */
+  #hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  #hero canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* ── UI Overlay ── */
+  #ui {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 40px 50px;
+  }
+
+  #header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fadeDown 1.4s ease forwards;
+  }
+
+  #kicker {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.9;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.8rem, 6vw, 6rem);
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 1.0;
+    text-shadow: 0 4px 40px rgba(0,0,0,0.8);
+  }
+
+  h1 span { color: var(--green); }
+
+  #sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(245,240,232,0.55);
+    letter-spacing: 0.05em;
+    margin-top: 6px;
+  }
+
+  /* ── Bottom bar ── */
+  #bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    animation: fadeUp 1.4s 0.3s ease both;
+  }
+
+  #cta-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    pointer-events: all;
+  }
+
+  #hint {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: rgba(245,240,232,0.35);
+    text-transform: uppercase;
+  }
+
+  #volunteer-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--black);
+    background: var(--green);
+    border: none;
+    padding: 16px 38px;
+    cursor: none;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+  #volunteer-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.12);
+    transform: translateX(-100%);
+    transition: transform 0.4s ease;
+  }
+  #volunteer-btn:hover::after { transform: translateX(0); }
+  #volunteer-btn:hover { background: #009050; }
+
+  /* ── Stats strip ── */
+  #stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .stat {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: rgba(245,240,232,0.45);
+    letter-spacing: 0.08em;
+    text-align: right;
+  }
+  .stat strong {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--cream);
+    display: block;
+  }
+
+  /* ── Info popup ── */
+  #popup {
+    position: fixed;
+    background: rgba(10,10,10,0.92);
+    border: 1px solid rgba(200,169,110,0.3);
+    border-left: 3px solid var(--gold);
+    padding: 18px 22px;
+    max-width: 280px;
+    z-index: 200;
+    pointer-events: all;
+    transform: translateY(8px);
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    display: none;
+  }
+  #popup.visible {
+    opacity: 1;
+    transform: translateY(0);
+    display: block;
+  }
+  #popup-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    color: var(--gold);
+    margin-bottom: 7px;
+  }
+  #popup-body {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: rgba(245,240,232,0.75);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+  #popup-link {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--green);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0,122,61,0.4);
+    padding-bottom: 2px;
+  }
+  #popup-close {
+    position: absolute; top: 10px; right: 12px;
+    background: none; border: none; color: rgba(245,240,232,0.4);
+    font-size: 16px; cursor: none; line-height: 1;
+  }
+
+  /* ── Flag watermark ── */
+  #flag-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg,
+      #000 0% 25%,
+      #fff 25% 50%,
+      #007a3d 50% 75%,
+      #ce1126 75% 100%);
+    opacity: 0.6;
+    z-index: 50;
+  }
+
+  /* ═══════════════════════════════
+     BELOW-FOLD SECTIONS
+  ═══════════════════════════════ */
+
+  .section {
+    width: 100%;
+    padding: 100px 80px;
+    position: relative;
+  }
+
+  /* ── Section: Crisis Numbers ── */
+  #crisis-section {
+    background: #0d0d0d;
+    border-top: 1px solid rgba(200,169,110,0.15);
+  }
+
+  .section-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 18px;
+  }
+
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 3.8rem);
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 1.1;
+    margin-bottom: 40px;
+    max-width: 700px;
+  }
+
+  .section-title em {
+    font-style: italic;
+    color: var(--red);
+  }
+
+  .crisis-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    margin-bottom: 60px;
+  }
+
+  .crisis-card {
+    background: #111;
+    padding: 40px 30px;
+    border-top: 3px solid transparent;
+    transition: border-color 0.3s, background 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .crisis-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle at top left, rgba(206,17,38,0.05), transparent 60%);
+    pointer-events: none;
+  }
+  .crisis-card:hover {
+    border-color: var(--red);
+    background: #161616;
+  }
+  .crisis-card:nth-child(2) { border-top-color: rgba(0,122,61,0.4); }
+  .crisis-card:nth-child(3) { border-top-color: rgba(200,169,110,0.4); }
+
+  .crisis-num {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.5rem, 4vw, 4rem);
+    font-weight: 900;
+    color: var(--cream);
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .crisis-num span { color: var(--red); }
+  .crisis-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.45);
+    margin-bottom: 14px;
+  }
+  .crisis-desc {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: rgba(245,240,232,0.55);
+    line-height: 1.65;
+  }
+
+  /* ── Section: History Timeline ── */
+  #history-section {
+    background: #080808;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .timeline {
+    position: relative;
+    padding-left: 60px;
+    max-width: 900px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 16px; top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--red), var(--green), var(--gold));
+    opacity: 0.4;
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 56px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -52px; top: 6px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--gold);
+    border: 2px solid var(--black);
+    box-shadow: 0 0 12px rgba(200,169,110,0.6);
+  }
+  .timeline-year {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .timeline-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--cream);
+    margin-bottom: 10px;
+  }
+  .timeline-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: rgba(245,240,232,0.55);
+    line-height: 1.75;
+    max-width: 660px;
+  }
+
+  /* ── Section: Voices / Quotes ── */
+  #voices-section {
+    background: linear-gradient(180deg, #0d0d0d 0%, #0a0a0a 100%);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    overflow: hidden;
+  }
+
+  .voices-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 30px;
+    margin-top: 50px;
+  }
+
+  .quote-card {
+    background: #101010;
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 40px 36px;
+    position: relative;
+  }
+  .quote-card::before {
+    content: '"';
+    font-family: 'Playfair Display', serif;
+    font-size: 100px;
+    color: rgba(200,169,110,0.08);
+    position: absolute;
+    top: 10px; left: 20px;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .quote-card:nth-child(2) { margin-top: 40px; }
+  .quote-card:nth-child(3) { margin-top: 20px; }
+
+  .quote-text {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 1.05rem;
+    color: rgba(245,240,232,0.8);
+    line-height: 1.75;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .quote-attr {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    opacity: 0.7;
+  }
+
+  /* ── Section: How to Help ── */
+  #help-section {
+    background: #0d0d0d;
+    border-top: 1px solid rgba(0,122,61,0.2);
+  }
+
+  .help-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-top: 50px;
+  }
+
+  .help-card {
+    background: #111;
+    padding: 50px 40px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .help-card:hover { background: #161616; }
+  .help-icon {
+    font-size: 2rem;
+    margin-bottom: 22px;
+    display: block;
+  }
+  .help-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--cream);
+    margin-bottom: 14px;
+  }
+  .help-desc {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: rgba(245,240,232,0.5);
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+  .help-link {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(0,122,61,0.35);
+    padding-bottom: 3px;
+    transition: border-color 0.3s, color 0.3s;
+    cursor: none;
+  }
+  .help-link:hover { color: #00c060; border-color: #00c060; }
+
+  /* ── Section: Map / Regions ── */
+  #regions-section {
+    background: #080808;
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .regions-flex {
+    display: flex;
+    gap: 60px;
+    margin-top: 50px;
+    align-items: flex-start;
+  }
+
+  .regions-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .region-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 22px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.2s;
+  }
+  .region-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+  }
+  .region-dot.red { background: var(--red); }
+  .region-dot.gold { background: var(--gold); }
+  .region-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--cream);
+    min-width: 160px;
+  }
+  .region-pop {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: rgba(245,240,232,0.35);
+    letter-spacing: 0.08em;
+  }
+  .region-bar-wrap {
+    flex: 1;
+    height: 3px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .region-bar {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 1.5s ease;
+  }
+
+  .regions-text {
+    flex: 0 0 380px;
+  }
+  .regions-text p {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: rgba(245,240,232,0.5);
+    line-height: 1.85;
+    margin-bottom: 24px;
+  }
+  .regions-text .big-quote {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 1.4rem;
+    color: rgba(245,240,232,0.7);
+    line-height: 1.6;
+    border-left: 3px solid var(--gold);
+    padding-left: 24px;
+    margin: 30px 0;
+  }
+
+  /* ── FOOTER ── */
+  #footer {
+    background: #050505;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding: 70px 80px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  #footer::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #000 0% 25%, #fff 25% 50%, #007a3d 50% 75%, #ce1126 75% 100%);
+    opacity: 0.5;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 60px;
+    margin-bottom: 60px;
+  }
+
+  .footer-brand {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .footer-brand-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--cream);
+  }
+  .footer-brand-name span { color: var(--green); }
+  .footer-tagline {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: rgba(245,240,232,0.4);
+    line-height: 1.7;
+    max-width: 280px;
+  }
+  .footer-flag {
+    display: flex;
+    gap: 0;
+    margin-top: 10px;
+    width: 80px;
+    height: 52px;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  .footer-flag-stripe {
+    flex: 1;
+  }
+  .footer-flag-stripe.black { background: #000; }
+  .footer-flag-stripe.white { background: #f5f0e8; }
+  .footer-flag-stripe.green { background: #007a3d; }
+
+  .footer-col-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 22px;
+  }
+  .footer-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .footer-links a {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: rgba(245,240,232,0.45);
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    transition: color 0.25s;
+    cursor: none;
+  }
+  .footer-links a:hover { color: var(--cream); }
+
+  .footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .footer-copy {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    color: rgba(245,240,232,0.2);
+    letter-spacing: 0.06em;
+  }
+  .footer-solidarity {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(245,240,232,0.3);
+  }
+
+  /* ── Scroll indicator ── */
+  #scroll-indicator {
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    animation: fadeUp 2s 1s ease both;
+    pointer-events: none;
+    z-index: 110;
+  }
+  #scroll-indicator span {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.25);
+  }
+  .scroll-arrow {
+    width: 1px;
+    height: 40px;
+    background: linear-gradient(to bottom, rgba(245,240,232,0.3), transparent);
+    animation: scrollPulse 2s infinite;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.3; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.2); }
+  }
+
+  @media (max-width: 1024px) {
+    .crisis-grid { grid-template-columns: repeat(2, 1fr); }
+    .voices-grid { grid-template-columns: 1fr 1fr; }
+    .help-grid { grid-template-columns: 1fr 1fr; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .regions-flex { flex-direction: column; }
+    .regions-text { flex: none; width: 100%; }
+    .section { padding: 80px 40px; }
+    #footer { padding: 60px 40px 40px; }
+  }
+  @media (max-width: 640px) {
+    .crisis-grid, .voices-grid, .help-grid { grid-template-columns: 1fr; }
+    .footer-grid { grid-template-columns: 1fr; }
+    .section { padding: 60px 24px; }
+    #ui { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom crosshair cursor -->
+<div id="cursor">
+  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="20" cy="20" r="8" stroke="#f5f0e8" stroke-width="1.2" opacity="0.9"/>
+    <line x1="20" y1="2"  x2="20" y2="12" stroke="#f5f0e8" stroke-width="1.2"/>
+    <line x1="20" y1="28" x2="20" y2="38" stroke="#f5f0e8" stroke-width="1.2"/>
+    <line x1="2"  y1="20" x2="12" y2="20" stroke="#f5f0e8" stroke-width="1.2"/>
+    <line x1="28" y1="20" x2="38" y2="20" stroke="#f5f0e8" stroke-width="1.2"/>
+    <circle cx="20" cy="20" r="1.5" fill="#ce1126"/>
+  </svg>
+</div>
+
+<!-- ══════════════════════ HERO / 3D SCENE ══════════════════════ -->
+<section id="hero">
+  <!-- UI Overlay -->
+  <div id="ui">
+    <div id="header">
+      <div id="kicker">Humanitarian Awareness · Gaza</div>
+      <h1>Stand With<br><span>Palestine</span></h1>
+      <p id="sub">Move your mouse to rotate the scene. Click the terrain to reveal stories.</p>
+    </div>
+
+    <div id="bottom">
+      <div id="cta-group">
+        <span id="hint">↙ Explore the land · scroll for more</span>
+        <button id="volunteer-btn" onclick="window.open('https://www.unrwa.org/donate','_blank')">
+          Donate Now
+        </button>
+      </div>
+
+      <div id="stats">
+        <div class="stat"><strong>2.3M</strong>People in Gaza</div>
+        <div class="stat"><strong>365km²</strong>Area of the Strip</div>
+        <div class="stat"><strong>75+</strong>Years of resilience</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll indicator -->
+  <div id="scroll-indicator">
+    <span>Scroll</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- Info popup on click -->
+<div id="popup">
+  <button id="popup-close" onclick="closePopup()">✕</button>
+  <div id="popup-title"></div>
+  <div id="popup-body"></div>
+  <a id="popup-link" href="https://www.unrwa.org/donate" target="_blank">Support Relief Efforts →</a>
+</div>
+
+<!-- Palestinian flag bar -->
+<div id="flag-bar"></div>
+
+<!-- ══════════════════════ CRISIS SECTION ══════════════════════ -->
+<section class="section" id="crisis-section">
+  <div class="section-label">The Human Toll</div>
+  <h2 class="section-title">A crisis that demands<br><em>the world's attention</em></h2>
+  <div class="crisis-grid">
+    <div class="crisis-card">
+      <div class="crisis-num"><span>47,000+</span></div>
+      <div class="crisis-label">Lives Lost</div>
+      <div class="crisis-desc">Civilians, including tens of thousands of children and women, killed since October 2023. Each number is a family, a story, a future.</div>
+    </div>
+    <div class="crisis-card">
+      <div class="crisis-num">1.9<span>M</span></div>
+      <div class="crisis-label">Displaced</div>
+      <div class="crisis-desc">Over 80% of Gaza's population has been forced from their homes, living in makeshift shelters under catastrophic conditions.</div>
+    </div>
+    <div class="crisis-card">
+      <div class="crisis-num"><span>90%</span></div>
+      <div class="crisis-label">Buildings Damaged</div>
+      <div class="crisis-desc">Gaza's infrastructure — hospitals, schools, mosques, homes — has been devastated. Entire neighbourhoods reduced to rubble.</div>
+    </div>
+    <div class="crisis-card">
+      <div class="crisis-num">2.3<span>M</span></div>
+      <div class="crisis-label">Need Aid Now</div>
+      <div class="crisis-desc">The entire population of Gaza faces acute food insecurity and lack of clean water, medicine, and shelter.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ HISTORY SECTION ══════════════════════ -->
+<section class="section" id="history-section">
+  <div class="section-label">A Living History</div>
+  <h2 class="section-title">Palestine through<br>the centuries</h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-year">Ancient — 1917</div>
+      <div class="timeline-heading">A Land of Ancient Civilisation</div>
+      <div class="timeline-text">Palestine has been continuously inhabited for thousands of years — a crossroads of civilisations, home to Canaanites, Philistines, Hebrews, Romans, Byzantines, Arabs, and Ottomans. The land's culture, art, and architecture reflects millennia of rich, layered history.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">1948</div>
+      <div class="timeline-heading">Al-Nakba — The Catastrophe</div>
+      <div class="timeline-text">The establishment of the State of Israel resulted in the forced expulsion of over 700,000 Palestinians from their homes. This event, known as the Nakba, created a refugee crisis whose repercussions continue to define the Palestinian experience to this day.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">1967</div>
+      <div class="timeline-heading">Occupation of Gaza & West Bank</div>
+      <div class="timeline-text">Following the Six-Day War, Israel occupied the West Bank, East Jerusalem, and the Gaza Strip. This marked the beginning of one of the longest military occupations in modern history, reshaping Palestinian daily life under a system of checkpoints, blockades, and restricted movement.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2007 — Present</div>
+      <div class="timeline-heading">The Gaza Blockade</div>
+      <div class="timeline-text">Since 2007, Israel has imposed a land, sea, and air blockade on Gaza, severely restricting the movement of people and goods. The resulting humanitarian crisis has left 2.3 million people dependent on international aid in what UN officials have described as an open-air prison.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">October 2023 — Present</div>
+      <div class="timeline-heading">The Current War</div>
+      <div class="timeline-text">Following the Hamas attacks of October 7th, Israel launched an intensive military campaign on Gaza. The scale of destruction has been described as unprecedented — flattening entire districts, displacing nearly all of Gaza's population, and triggering a full-scale famine.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ VOICES SECTION ══════════════════════ -->
+<section class="section" id="voices-section">
+  <div class="section-label">Voices of Palestine</div>
+  <h2 class="section-title">Words from those<br>who know this land</h2>
+  <div class="voices-grid">
+    <div class="quote-card">
+      <p class="quote-text">We did not come to this earth to leave it. Our roots are in this land, older than any border drawn on a map. No displacement can erase that.</p>
+      <div class="quote-attr">— Survivor, Gaza City</div>
+    </div>
+    <div class="quote-card">
+      <p class="quote-text">My children ask me why we can't go home. What do I tell them? That home still exists — in our memory, in our food, in the way my mother sang to the olive trees.</p>
+      <div class="quote-attr">— Displaced family, Rafah</div>
+    </div>
+    <div class="quote-card">
+      <p class="quote-text">Resistance is not only armed struggle. Resistance is planting a garden. Writing a poem. Teaching your child their grandmother's name in Arabic. We persist.</p>
+      <div class="quote-attr">— Palestinian poet, Ramallah</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ HOW TO HELP ══════════════════════ -->
+<section class="section" id="help-section">
+  <div class="section-label">Take Action</div>
+  <h2 class="section-title">How you can<br>make a difference</h2>
+  <div class="help-grid">
+    <div class="help-card">
+      <span class="help-icon">🤝</span>
+      <div class="help-title">Donate to Relief</div>
+      <div class="help-desc">Support trusted humanitarian organisations providing food, medicine, clean water, and shelter to the people of Gaza. Every contribution directly saves lives.</div>
+      <a href="https://www.unrwa.org/donate" target="_blank" class="help-link">Give to UNRWA →</a>
+    </div>
+    <div class="help-card">
+      <span class="help-icon">📢</span>
+      <div class="help-title">Raise Your Voice</div>
+      <div class="help-desc">Use your platform — social media, community spaces, conversations — to share accurate information and keep the world's attention on Palestinian humanity and rights.</div>
+      <a href="https://bdsmovement.net/" target="_blank" class="help-link">Learn About BDS →</a>
+    </div>
+    <div class="help-card">
+      <span class="help-icon">✍️</span>
+      <div class="help-title">Contact Lawmakers</div>
+      <div class="help-desc">Write to your elected representatives demanding an immediate ceasefire, access for humanitarian aid, and accountability for violations of international law.</div>
+      <a href="https://www.amnesty.org/en/latest/news/2023/10/israel-opt-crisis/" target="_blank" class="help-link">Amnesty International →</a>
+    </div>
+    <div class="help-card">
+      <span class="help-icon">📚</span>
+      <div class="help-title">Educate Yourself</div>
+      <div class="help-desc">Understanding the history, the politics, and the people is the first step. Read, watch, and listen to Palestinian voices — not just about the conflict, but about culture and life.</div>
+      <a href="https://www.palestinechronicle.com/" target="_blank" class="help-link">Palestine Chronicle →</a>
+    </div>
+    <div class="help-card">
+      <span class="help-icon">🏥</span>
+      <div class="help-title">Medical Relief</div>
+      <div class="help-desc">Gaza's healthcare system has been decimated. Support medical NGOs providing emergency care, trauma surgery, and medicine to those injured and in desperate need.</div>
+      <a href="https://www.doctorswithoutborders.org/what-we-do/where-we-work/palestine" target="_blank" class="help-link">Médecins Sans Frontières →</a>
+    </div>
+    <div class="help-card">
+      <span class="help-icon">🌿</span>
+      <div class="help-title">Support Rebuilding</div>
+      <div class="help-desc">Beyond the immediate crisis, Palestine will need rebuilding — homes, schools, hospitals, lives. Long-term solidarity means staying engaged even when headlines fade.</div>
+      <a href="https://www.oxfam.org/en/what-we-do/where-we-work/middle-east-and-north-africa/occupied-palestinian-territory" target="_blank" class="help-link">Oxfam Palestine →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ REGIONS SECTION ══════════════════════ -->
+<section class="section" id="regions-section">
+  <div class="section-label">The Land</div>
+  <h2 class="section-title">Gaza's communities<br>and their stories</h2>
+  <div class="regions-flex">
+    <div class="regions-list">
+      <div class="region-row">
+        <div class="region-dot"></div>
+        <div class="region-name">Gaza City</div>
+        <div class="region-pop">~700,000 residents</div>
+        <div class="region-bar-wrap"><div class="region-bar" style="width: 100%"></div></div>
+      </div>
+      <div class="region-row">
+        <div class="region-dot red"></div>
+        <div class="region-name">Khan Younis</div>
+        <div class="region-pop">~400,000 residents</div>
+        <div class="region-bar-wrap"><div class="region-bar" style="width: 57%; background: var(--red)"></div></div>
+      </div>
+      <div class="region-row">
+        <div class="region-dot gold"></div>
+        <div class="region-name">Rafah</div>
+        <div class="region-pop">~280,000 residents</div>
+        <div class="region-bar-wrap"><div class="region-bar" style="width: 40%; background: var(--gold)"></div></div>
+      </div>
+      <div class="region-row">
+        <div class="region-dot"></div>
+        <div class="region-name">Jabalia</div>
+        <div class="region-pop">~115,000 residents</div>
+        <div class="region-bar-wrap"><div class="region-bar" style="width: 16%"></div></div>
+      </div>
+      <div class="region-row">
+        <div class="region-dot red"></div>
+        <div class="region-name">Deir al-Balah</div>
+        <div class="region-pop">~95,000 residents</div>
+        <div class="region-bar-wrap"><div class="region-bar" style="width: 14%; background: var(--red)"></div></div>
+      </div>
+      <div class="region-row">
+        <div class="region-dot gold"></div>
+        <div class="region-name">Beit Lahiya</div>
+        <div class="region-pop">~82,000 residents</div>
+        <div class="region-bar-wrap"><div class="region-bar" style="width: 12%; background: var(--gold)"></div></div>
+      </div>
+    </div>
+    <div class="regions-text">
+      <p>Gaza is one of the most densely populated territories on Earth — 2.3 million people living in an area of just 365 square kilometres. Before the current war, it was home to universities, hospitals, markets, orchards, and centuries of culture.</p>
+      <div class="big-quote">"Gaza is not just a place. It is a wound in the world's conscience that refuses to close."</div>
+      <p>Each city and refugee camp within Gaza has its own distinct identity, its own history of resilience, its own relationship to the sea, the land, and the olive groves that once stretched across this coastal strip. These are not statistics — they are communities.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════ FOOTER ══════════════════════ -->
+<footer id="footer">
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="footer-brand-name">Stand With<br><span>Palestine</span></div>
+      <p class="footer-tagline">An awareness initiative calling on the world to recognise Palestinian humanity, history, and the right to live in freedom and dignity.</p>
+      <div class="footer-flag">
+        <div class="footer-flag-stripe black"></div>
+        <div class="footer-flag-stripe white"></div>
+        <div class="footer-flag-stripe green"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Aid Organisations</div>
+      <ul class="footer-links">
+        <li><a href="https://www.unrwa.org/donate" target="_blank">UNRWA</a></li>
+        <li><a href="https://www.doctorswithoutborders.org" target="_blank">Médecins Sans Frontières</a></li>
+        <li><a href="https://www.oxfam.org" target="_blank">Oxfam</a></li>
+        <li><a href="https://www.icrc.org" target="_blank">Red Cross / ICRC</a></li>
+        <li><a href="https://www.savethechildren.org" target="_blank">Save the Children</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Information</div>
+      <ul class="footer-links">
+        <li><a href="https://www.palestinechronicle.com/" target="_blank">Palestine Chronicle</a></li>
+        <li><a href="https://www.amnesty.org" target="_blank">Amnesty International</a></li>
+        <li><a href="https://www.hrw.org" target="_blank">Human Rights Watch</a></li>
+        <li><a href="https://www.btselem.org" target="_blank">B'Tselem</a></li>
+        <li><a href="https://www.un.org/unrwa" target="_blank">United Nations</a></li>
+      </ul>
+    </div>
+
+    <div>
+      <div class="footer-col-title">Take Action</div>
+      <ul class="footer-links">
+        <li><a href="https://bdsmovement.net/" target="_blank">BDS Movement</a></li>
+        <li><a href="https://www.avaaz.org" target="_blank">Sign Petitions</a></li>
+        <li><a href="https://www.parliament.uk/get-involved/contact-an-mp/" target="_blank">Contact Lawmakers</a></li>
+        <li><a href="https://www.islamic-relief.org/appeals/palestine-emergency/" target="_blank">Islamic Relief</a></li>
+        <li><a href="https://www.map.org.uk" target="_blank">Medical Aid for Palestinians</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <span class="footer-copy">Built to honour Palestinian lives and history. Free from ads. Free from bias.</span>
+    <span class="footer-solidarity">من النهر إلى البحر — From the river to the sea.</span>
+  </div>
+</footer>
+
+<!-- ══════════════════════ THREE.JS SCENE ══════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════
+//  SCENE SETUP
+// ═══════════════════════════════════════════════
+const heroEl = document.getElementById('hero');
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(heroEl.clientWidth, heroEl.clientHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.85;
+heroEl.insertBefore(renderer.domElement, heroEl.firstChild);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050810);
+scene.fog = new THREE.FogExp2(0x050810, 0.018);
+
+const camera = new THREE.PerspectiveCamera(55, heroEl.clientWidth / heroEl.clientHeight, 0.1, 300);
+camera.position.set(0, 18, 38);
+camera.lookAt(0, 0, 0);
+
+// ═══════════════════════════════════════════════
+//  LIGHTING
+// ═══════════════════════════════════════════════
+const ambient = new THREE.AmbientLight(0x1a2a3a, 0.8);
+scene.add(ambient);
+
+const sunLight = new THREE.DirectionalLight(0xffd090, 2.4);
+sunLight.position.set(-20, 30, -10);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(2048, 2048);
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 120;
+sunLight.shadow.camera.left = -40;
+sunLight.shadow.camera.right = 40;
+sunLight.shadow.camera.top = 40;
+sunLight.shadow.camera.bottom = -40;
+sunLight.shadow.bias = -0.001;
+scene.add(sunLight);
+
+const rimLight = new THREE.DirectionalLight(0x4060c0, 0.9);
+rimLight.position.set(20, 10, 20);
+scene.add(rimLight);
+
+const fill = new THREE.HemisphereLight(0x2040a0, 0x301a0a, 0.5);
+scene.add(fill);
+
+// ═══════════════════════════════════════════════
+//  TERRAIN
+// ═══════════════════════════════════════════════
+const TERRAIN_W = 70, TERRAIN_D = 70, SEG = 28;
+const terrainGeo = new THREE.PlaneGeometry(TERRAIN_W, TERRAIN_D, SEG, SEG);
+terrainGeo.rotateX(-Math.PI / 2);
+
+const pos = terrainGeo.attributes.position;
+for (let i = 0; i < pos.count; i++) {
+  const x = pos.getX(i), z = pos.getZ(i);
+  const dist = Math.sqrt(x * x + z * z);
+  const coast = Math.max(0, (dist - 12) * 0.08);
+  const noise = Math.sin(x * 0.4) * Math.cos(z * 0.35) * 1.8
+              + Math.sin(x * 0.9 + 1) * Math.cos(z * 0.7) * 0.9
+              + Math.sin(x * 1.8) * Math.cos(z * 1.5) * 0.4;
+  pos.setY(i, coast * noise + coast * 0.5);
+}
+terrainGeo.computeVertexNormals();
+
+const colors = [];
+for (let i = 0; i < pos.count; i++) {
+  const y = pos.getY(i);
+  const t = Math.min(1, y / 4);
+  colors.push(0.28 + t * 0.12, 0.22 + t * 0.18, 0.10 + t * 0.05);
+}
+terrainGeo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+const terrainMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+terrain.receiveShadow = true;
+terrain.name = 'terrain';
+scene.add(terrain);
+
+function getTerrainY(x, z) {
+  const dist = Math.sqrt(x * x + z * z);
+  const coast = Math.max(0, (dist - 12) * 0.08);
+  const noise = Math.sin(x * 0.4) * Math.cos(z * 0.35) * 1.8
+              + Math.sin(x * 0.9 + 1) * Math.cos(z * 0.7) * 0.9
+              + Math.sin(x * 1.8) * Math.cos(z * 1.5) * 0.4;
+  return coast * noise + coast * 0.5;
+}
+
+// ═══════════════════════════════════════════════
+//  WATER
+// ═══════════════════════════════════════════════
+const waterGeo = new THREE.PlaneGeometry(TERRAIN_W * 1.5, TERRAIN_D * 0.6);
+waterGeo.rotateX(-Math.PI / 2);
+const waterMat = new THREE.MeshLambertMaterial({ color: 0x0a2240, transparent: true, opacity: 0.85 });
+const water = new THREE.Mesh(waterGeo, waterMat);
+water.position.set(0, 0.05, -TERRAIN_D * 0.55);
+scene.add(water);
+
+// ═══════════════════════════════════════════════
+//  BUILDINGS
+// ═══════════════════════════════════════════════
+const buildingMat = new THREE.MeshLambertMaterial({ color: 0x8a7a6a, flatShading: true });
+const buildingMatDark = new THREE.MeshLambertMaterial({ color: 0x5a4f44, flatShading: true });
+// Damaged/rubble material
+const rubbleMat = new THREE.MeshLambertMaterial({ color: 0x4a4040, flatShading: true });
+
+for (let i = 0; i < 90; i++) {
+  const w = 0.4 + Math.random() * 1.0;
+  const d = 0.4 + Math.random() * 1.0;
+  const isDamaged = Math.random() < 0.3;
+  const h = isDamaged ? 0.3 + Math.random() * 1.2 : 0.5 + Math.random() * 3.5;
+  const bGeo = new THREE.BoxGeometry(w, h, d);
+  const mat = isDamaged ? rubbleMat : (Math.random() > 0.5 ? buildingMat : buildingMatDark);
+  const mesh = new THREE.Mesh(bGeo, mat);
+  mesh.castShadow = true;
+  const x = (Math.random() - 0.5) * 30;
+  const z = (Math.random() - 0.5) * 22 + 4;
+  const y = getTerrainY(x, z);
+  mesh.position.set(x, y + h / 2, z);
+  mesh.rotation.y = isDamaged ? Math.random() * 0.6 - 0.3 : Math.random() * 0.2 - 0.1;
+  if (isDamaged) mesh.rotation.z = Math.random() * 0.2 - 0.1;
+  scene.add(mesh);
+}
+
+// ═══════════════════════════════════════════════
+//  SMOKE COLUMNS (from bombed buildings)
+// ═══════════════════════════════════════════════
+const smokeParticles = [];
+const smokePositions = [[-8, 3], [5, -1], [-13, 6], [9, -5], [2, 10]];
+
+smokePositions.forEach(([sx, sz]) => {
+  const sy = getTerrainY(sx, sz);
+  for (let i = 0; i < 12; i++) {
+    const sg = new THREE.SphereGeometry(0.3 + Math.random() * 0.5, 5, 5);
+    const sm = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0.2 + Math.random()*0.1, 0.2 + Math.random()*0.1, 0.2 + Math.random()*0.1),
+      transparent: true,
+      opacity: 0.3 + Math.random() * 0.3
+    });
+    const sp = new THREE.Mesh(sg, sm);
+    sp.position.set(sx + (Math.random()-0.5)*1.5, sy + 1 + i * 0.9 + Math.random(), sz + (Math.random()-0.5)*1.5);
+    scene.add(sp);
+    smokeParticles.push({ mesh: sp, baseY: sp.position.y, speed: 0.3 + Math.random()*0.4, offset: Math.random()*Math.PI*2 });
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  FLAGS
+// ═══════════════════════════════════════════════
+function makeFlag(x, z) {
+  const group = new THREE.Group();
+  const poleGeo = new THREE.CylinderGeometry(0.035, 0.035, 3.5, 6);
+  const poleMat = new THREE.MeshLambertMaterial({ color: 0xaaaaaa });
+  const pole = new THREE.Mesh(poleGeo, poleMat);
+  pole.position.y = 1.75;
+  pole.castShadow = true;
+  group.add(pole);
+
+  const fW = 1.4, fH = 0.9;
+  const flagCanvas = document.createElement('canvas');
+  flagCanvas.width = 280; flagCanvas.height = 180;
+  const ctx = flagCanvas.getContext('2d');
+  ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, 280, 60);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 60, 280, 60);
+  ctx.fillStyle = '#007a3d'; ctx.fillRect(0, 120, 280, 60);
+  ctx.fillStyle = '#ce1126';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(100,90); ctx.lineTo(0,180); ctx.closePath(); ctx.fill();
+
+  const flagTex = new THREE.CanvasTexture(flagCanvas);
+  const flagGeo = new THREE.PlaneGeometry(fW, fH, 8, 1);
+  const flagMat = new THREE.MeshLambertMaterial({ map: flagTex, side: THREE.DoubleSide });
+  const flag = new THREE.Mesh(flagGeo, flagMat);
+  flag.position.set(fW/2, 3.1, 0);
+  flag.castShadow = true;
+  flag.userData.isFlag = true;
+  group.add(flag);
+
+  const terrY = getTerrainY(x, z);
+  group.position.set(x, terrY, z);
+  scene.add(group);
+  return flag;
+}
+
+const flags = [];
+const flagPositions = [[-8,5],[6,-2],[-14,-6],[10,8],[0,12],[-18,10],[15,-4],[-4,-10],[20,3],[-10,14]];
+flagPositions.forEach(([x,z]) => flags.push(makeFlag(x,z)));
+
+// ═══════════════════════════════════════════════
+//  STARS
+// ═══════════════════════════════════════════════
+const starGeo = new THREE.BufferGeometry();
+const starVerts = [];
+for (let i = 0; i < 1400; i++) {
+  starVerts.push((Math.random()-0.5)*400, 20+Math.random()*120, (Math.random()-0.5)*400);
+}
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starVerts, 3));
+const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, sizeAttenuation: true });
+scene.add(new THREE.Points(starGeo, starMat));
+
+// ═══════════════════════════════════════════════
+//  AIRCRAFT (bombing planes)
+// ═══════════════════════════════════════════════
+function makeAircraft(type) {
+  const group = new THREE.Group();
+
+  if (type === 'jet') {
+    // Fuselage
+    const fuseGeo = new THREE.CylinderGeometry(0.12, 0.08, 2.2, 6);
+    fuseGeo.rotateZ(Math.PI / 2);
+    const fuseMat = new THREE.MeshLambertMaterial({ color: 0x888888, flatShading: true });
+    group.add(new THREE.Mesh(fuseGeo, fuseMat));
+
+    // Wings
+    const wingGeo = new THREE.BoxGeometry(3.5, 0.06, 0.7);
+    const wingMesh = new THREE.Mesh(wingGeo, fuseMat);
+    wingMesh.position.set(0, 0, 0.1);
+    group.add(wingMesh);
+
+    // Tail fins
+    const tailH = new THREE.BoxGeometry(0.9, 0.06, 0.5);
+    const tailV = new THREE.BoxGeometry(0.06, 0.5, 0.45);
+    const tailHm = new THREE.Mesh(tailH, fuseMat);
+    tailHm.position.set(-0.9, 0, -0.2);
+    group.add(tailHm);
+    const tailVm = new THREE.Mesh(tailV, fuseMat);
+    tailVm.position.set(-0.9, 0.25, -0.1);
+    group.add(tailVm);
+
+    // Cockpit dome
+    const cockGeo = new THREE.SphereGeometry(0.15, 5, 5);
+    const cockMat = new THREE.MeshLambertMaterial({ color: 0x445566 });
+    const cock = new THREE.Mesh(cockGeo, cockMat);
+    cock.position.set(0.7, 0.1, 0);
+    group.add(cock);
+
+  } else {
+    // Tank-like shape — but this is for the helicopter (stocky)
+    const bodyGeo = new THREE.BoxGeometry(1.8, 0.55, 0.7);
+    const bodyMat = new THREE.MeshLambertMaterial({ color: 0x556644, flatShading: true });
+    group.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+    // Rotor shaft
+    const shaftGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.6, 5);
+    const shaftMesh = new THREE.Mesh(shaftGeo, bodyMat);
+    shaftMesh.position.set(0.2, 0.55, 0);
+    group.add(shaftMesh);
+
+    // Rotor blades
+    const rotorGeo = new THREE.BoxGeometry(3.0, 0.04, 0.2);
+    const rotorMesh = new THREE.Mesh(rotorGeo, bodyMat);
+    rotorMesh.position.set(0.2, 0.85, 0);
+    group.add(rotorMesh);
+    group.userData.rotor = rotorMesh;
+
+    // Tail
+    const tailGeo = new THREE.CylinderGeometry(0.06, 0.04, 1.2, 5);
+    tailGeo.rotateZ(Math.PI/2);
+    const tailMesh = new THREE.Mesh(tailGeo, bodyMat);
+    tailMesh.position.set(-1.4, 0.1, 0);
+    group.add(tailMesh);
+  }
+
+  return group;
+}
+
+// Jets
+const jets = [];
+const JET_PATHS = [
+  { r: 32, speed: 0.35, y: 14, offset: 0 },
+  { r: 26, speed: 0.28, y: 12, offset: Math.PI * 0.7 },
+  { r: 38, speed: 0.22, y: 16, offset: Math.PI * 1.3 },
+];
+JET_PATHS.forEach(p => {
+  const jet = makeAircraft('jet');
+  scene.add(jet);
+  jets.push({ mesh: jet, ...p, trail: [] });
+});
+
+// Helicopters
+const helis = [];
+const HELI_PATHS = [
+  { r: 18, speed: 0.18, y: 9, offset: Math.PI * 0.5 },
+  { r: 24, speed: 0.14, y: 11, offset: Math.PI * 1.5 },
+];
+HELI_PATHS.forEach(p => {
+  const heli = makeAircraft('heli');
+  scene.add(heli);
+  helis.push({ mesh: heli, ...p });
+});
+
+// ═══════════════════════════════════════════════
+//  TANKS
+// ═══════════════════════════════════════════════
+function makeTank() {
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0x4a5a30, flatShading: true });
+  const darkMat = new THREE.MeshLambertMaterial({ color: 0x2a3520, flatShading: true });
+
+  // Body
+  const bodyGeo = new THREE.BoxGeometry(2.4, 0.6, 1.3);
+  group.add(new THREE.Mesh(bodyGeo, bodyMat));
+
+  // Turret
+  const turretGeo = new THREE.BoxGeometry(1.0, 0.45, 0.85);
+  const turret = new THREE.Mesh(turretGeo, bodyMat);
+  turret.position.set(0.1, 0.52, 0);
+  group.add(turret);
+
+  // Barrel
+  const barrelGeo = new THREE.CylinderGeometry(0.07, 0.07, 1.6, 6);
+  barrelGeo.rotateZ(Math.PI/2);
+  const barrel = new THREE.Mesh(barrelGeo, darkMat);
+  barrel.position.set(1.1, 0.52, 0);
+  group.add(barrel);
+
+  // Tracks (left/right)
+  [-0.7, 0.7].forEach(tz => {
+    const trackGeo = new THREE.BoxGeometry(2.6, 0.4, 0.35);
+    const track = new THREE.Mesh(trackGeo, darkMat);
+    track.position.set(0, -0.12, tz);
+    group.add(track);
+  });
+
+  // Wheels (simplified)
+  for (let i = -1; i <= 1; i++) {
+    [-0.73, 0.73].forEach(tz => {
+      const wGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 7);
+      wGeo.rotateX(Math.PI/2);
+      const w = new THREE.Mesh(wGeo, darkMat);
+      w.position.set(i * 0.9, -0.22, tz);
+      group.add(w);
+    });
+  }
+
+  return group;
+}
+
+const tanks = [];
+const tankPositions = [
+  { x: 14, z: 2, angle: 0.8 },
+  { x: -16, z: -3, angle: 2.4 },
+  { x: 8, z: 14, angle: 1.2 },
+  { x: -6, z: -12, angle: 3.8 },
+  { x: 18, z: -8, angle: 0.2 },
+];
+tankPositions.forEach(tp => {
+  const tank = makeTank();
+  const y = getTerrainY(tp.x, tp.z);
+  tank.position.set(tp.x, y + 0.3, tp.z);
+  tank.rotation.y = tp.angle;
+  tank.castShadow = true;
+  scene.add(tank);
+  tanks.push({ mesh: tank, baseAngle: tp.angle, x: tp.x, z: tp.z });
+});
+
+// ═══════════════════════════════════════════════
+//  BOMB DROPS
+// ═══════════════════════════════════════════════
+const bombs = [];
+function dropBomb(x, y, z) {
+  const bGeo = new THREE.SphereGeometry(0.15, 5, 5);
+  const bMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+  const b = new THREE.Mesh(bGeo, bMat);
+  b.position.set(x, y, z);
+  scene.add(b);
+  bombs.push({ mesh: b, vy: 0, age: 0, maxAge: 3 });
+}
+
+// ═══════════════════════════════════════════════
+//  FIRE/EXPLOSION SYSTEM
+// ═══════════════════════════════════════════════
+const fires = [];
+const firePositions = [[-9, 4], [7, -3], [-15, -5], [11, 7]];
+firePositions.forEach(([fx, fz]) => {
+  const fy = getTerrainY(fx, fz) + 0.5;
+  for (let i = 0; i < 8; i++) {
+    const fg = new THREE.SphereGeometry(0.2 + Math.random()*0.3, 5, 5);
+    const fm = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(1, 0.3 + Math.random()*0.4, 0),
+      transparent: true, opacity: 0.85
+    });
+    const fp = new THREE.Mesh(fg, fm);
+    fp.position.set(fx + (Math.random()-0.5)*0.8, fy + i*0.35, fz + (Math.random()-0.5)*0.8);
+    scene.add(fp);
+    fires.push({ mesh: fp, baseY: fp.position.y, offset: Math.random()*Math.PI*2 });
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  RAYCASTER & CURSOR
+// ═══════════════════════════════════════════════
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+const cursorSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(0.12, 8, 8),
+  new THREE.MeshBasicMaterial({ color: 0xf5f0e8, wireframe: true })
+);
+cursorSphere.visible = false;
+scene.add(cursorSphere);
+
+const cursorEl = document.getElementById('cursor');
+let mouseScreen = { x: 0, y: 0 };
+// Mouse position for rotation (normalized -1 to 1)
+let mouseNorm = { x: 0, y: 0 };
+
+document.addEventListener('mousemove', (e) => {
+  mouseScreen.x = e.clientX;
+  mouseScreen.y = e.clientY;
+  cursorEl.style.left = e.clientX + 'px';
+  cursorEl.style.top  = e.clientY + 'px';
+  mouse.x =  (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  // Normalized for orbit
+  mouseNorm.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouseNorm.y = (e.clientY / window.innerHeight) * 2 - 1;
+});
+
+// ═══════════════════════════════════════════════
+//  IMPACT SYSTEM
+// ═══════════════════════════════════════════════
+const impacts = [];
+const particles = [];
+
+const LOCATION_INFO = [
+  { title: "Gaza City", body: "Home to over 700,000 people. A city of ancient olive groves, universities, and cultural heritage spanning thousands of years.", link: "https://www.unrwa.org" },
+  { title: "Khan Younis", body: "The second-largest city in Gaza. Known for its traditional crafts, bustling markets, and close-knit community bonds.", link: "https://www.unrwa.org" },
+  { title: "Rafah", body: "A border city with deep historical roots. Families here have shown extraordinary resilience across generations.", link: "https://www.unrwa.org" },
+  { title: "Beit Lahiya", body: "Northern Gaza — a region famed for its strawberry farms and agricultural heritage along the Mediterranean coast.", link: "https://www.unrwa.org" },
+  { title: "Deir al-Balah", body: "The 'Village of Dates' — named for its date palm groves. A centre of Palestinian agriculture and tradition.", link: "https://www.unrwa.org" },
+  { title: "Jabalia", body: "One of the world's most densely populated areas, with a refugee camp established in 1948. A community of extraordinary strength.", link: "https://www.unrwa.org" },
+];
+
+function spawnImpact(point) {
+  const ringGeo = new THREE.RingGeometry(0.05, 0.15, 32);
+  ringGeo.rotateX(-Math.PI/2);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd090, transparent: true, opacity: 0.9, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(point); ring.position.y += 0.05;
+  scene.add(ring);
+  impacts.push({ mesh: ring, age: 0, maxAge: 1.4 });
+
+  const ring2Mat = ringMat.clone(); ring2Mat.color.set(0xce1126);
+  const ring2 = new THREE.Mesh(ringGeo.clone(), ring2Mat);
+  ring2.position.copy(point); ring2.position.y += 0.07;
+  scene.add(ring2);
+  impacts.push({ mesh: ring2, age: -0.3, maxAge: 1.8, scale: 1.6 });
+
+  for (let i = 0; i < 28; i++) {
+    const pGeo = new THREE.SphereGeometry(0.04+Math.random()*0.06, 4, 4);
+    const pMat = new THREE.MeshBasicMaterial({ color: Math.random()>0.5 ? 0xffd090 : 0x007a3d, transparent: true, opacity: 1 });
+    const p = new THREE.Mesh(pGeo, pMat);
+    p.position.copy(point);
+    const angle = Math.random()*Math.PI*2;
+    const speed = 0.04+Math.random()*0.1;
+    particles.push({ mesh: p, vx: Math.cos(angle)*speed, vy: 0.06+Math.random()*0.08, vz: Math.sin(angle)*speed, age: 0, maxAge: 0.8+Math.random()*0.6 });
+    scene.add(p);
+  }
+}
+
+function showPopup(worldPoint) {
+  const info = LOCATION_INFO[Math.floor(Math.random()*LOCATION_INFO.length)];
+  const popup = document.getElementById('popup');
+  document.getElementById('popup-title').textContent = info.title;
+  document.getElementById('popup-body').textContent = info.body;
+  document.getElementById('popup-link').href = info.link;
+  const projected = worldPoint.clone().project(camera);
+  let sx = (projected.x*0.5+0.5)*window.innerWidth;
+  let sy = (-projected.y*0.5+0.5)*window.innerHeight;
+  sx = Math.min(sx+20, window.innerWidth-310);
+  sy = Math.min(sy-20, window.innerHeight-180);
+  popup.style.left = sx+'px'; popup.style.top = sy+'px';
+  popup.style.display = 'block';
+  requestAnimationFrame(() => popup.classList.add('visible'));
+}
+
+function closePopup() {
+  const popup = document.getElementById('popup');
+  popup.classList.remove('visible');
+  setTimeout(() => popup.style.display='none', 300);
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#popup') || e.target.closest('#cta-group')) return;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObject(terrain);
+  if (hits.length > 0) {
+    spawnImpact(hits[0].point);
+    showPopup(hits[0].point);
+  }
+});
+
+// ═══════════════════════════════════════════════
+//  CAMERA — cursor-driven orbit
+// ═══════════════════════════════════════════════
+const CAM_R = 42, CAM_Y = 18;
+let camTheta = 0;
+let targetCamTheta = 0;
+
+// ═══════════════════════════════════════════════
+//  ANIMATION LOOP
+// ═══════════════════════════════════════════════
+const clock = new THREE.Clock();
+let bombTimer = 0;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = clock.getDelta();
+  const t  = clock.getElapsedTime();
+
+  // Mouse-driven camera orbit
+  // camTheta follows mouseNorm.x smoothly
+  targetCamTheta = mouseNorm.x * Math.PI * 0.6; // ±108° range
+  camTheta += (targetCamTheta - camTheta) * 0.04;
+
+  const camTiltY = CAM_Y + mouseNorm.y * 6; // tilt up/down with mouse Y
+  camera.position.x = Math.sin(camTheta) * CAM_R;
+  camera.position.z = Math.cos(camTheta) * CAM_R;
+  camera.position.y = Math.max(8, Math.min(28, camTiltY + Math.sin(t*0.2)*1.0));
+  camera.lookAt(0, 2, 0);
+
+  // Flag wave
+  flags.forEach((flag, fi) => {
+    const fPos = flag.geometry.attributes.position;
+    for (let i = 0; i < fPos.count; i++) {
+      const lx = fPos.getX(i);
+      fPos.setZ(i, Math.sin(lx*3+t*2.5+fi*0.7)*0.06*lx);
+    }
+    fPos.needsUpdate = true;
+    flag.geometry.computeVertexNormals();
+  });
+
+  // Animate jets (circular orbit in sky)
+  jets.forEach((j, ji) => {
+    const angle = t * j.speed + j.offset;
+    j.mesh.position.x = Math.sin(angle) * j.r;
+    j.mesh.position.z = Math.cos(angle) * j.r;
+    j.mesh.position.y = j.y + Math.sin(t*0.5+ji)*1.5;
+    // Face direction of travel
+    j.mesh.rotation.y = -angle + Math.PI/2;
+    j.mesh.rotation.z = Math.sin(t*0.3+ji)*0.08; // gentle bank
+
+    // Drop bomb every few seconds
+    bombTimer += dt;
+    if (ji === 0 && bombTimer > 4) {
+      bombTimer = 0;
+      dropBomb(j.mesh.position.x, j.mesh.position.y - 0.5, j.mesh.position.z);
+    }
+  });
+
+  // Animate helicopters
+  helis.forEach((h, hi) => {
+    const angle = t * h.speed + h.offset;
+    h.mesh.position.x = Math.sin(angle) * h.r;
+    h.mesh.position.z = Math.cos(angle) * h.r;
+    h.mesh.position.y = h.y + Math.sin(t*0.4+hi*1.3)*1.2;
+    h.mesh.rotation.y = -angle;
+    // Spin rotor
+    if (h.mesh.userData.rotor) h.mesh.userData.rotor.rotation.y += dt * 15;
+  });
+
+  // Animate bombs falling
+  for (let i = bombs.length - 1; i >= 0; i--) {
+    const b = bombs[i];
+    b.age += dt;
+    b.vy -= dt * 9.8 * 0.05;
+    b.mesh.position.y += b.vy;
+    if (b.mesh.position.y < getTerrainY(b.mesh.position.x, b.mesh.position.z) + 0.3 || b.age > b.maxAge) {
+      scene.remove(b.mesh);
+      bombs.splice(i, 1);
+      // Spawn explosion effect at impact
+      const ep = b.mesh.position.clone();
+      ep.y = getTerrainY(ep.x, ep.z) + 0.2;
+      spawnImpact(ep);
+    }
+  }
+
+  // Animate smoke
+  smokeParticles.forEach(sp => {
+    sp.mesh.position.y = sp.baseY + Math.sin(t * sp.speed + sp.offset) * 0.4 + t * 0.02 % 5;
+    sp.mesh.material.opacity = 0.15 + Math.sin(t * 0.7 + sp.offset) * 0.1;
+  });
+
+  // Animate fires
+  fires.forEach(f => {
+    f.mesh.position.y = f.baseY + Math.sin(t*3+f.offset)*0.15;
+    f.mesh.scale.setScalar(0.8 + Math.sin(t*4+f.offset)*0.3);
+    const brightness = 0.6 + Math.sin(t*5+f.offset)*0.4;
+    f.mesh.material.color.setRGB(1, brightness*0.4, 0);
+  });
+
+  // Cursor 3D
+  raycaster.setFromCamera(mouse, camera);
+  const terrainHit = raycaster.intersectObject(terrain);
+  if (terrainHit.length > 0) {
+    cursorSphere.visible = true;
+    cursorSphere.position.copy(terrainHit[0].point);
+    cursorSphere.position.y += 0.2;
+  } else {
+    cursorSphere.visible = false;
+  }
+
+  // Impact rings
+  for (let i = impacts.length-1; i >= 0; i--) {
+    const imp = impacts[i];
+    imp.age += dt;
+    if (imp.age < 0) continue;
+    const prog = imp.age / imp.maxAge;
+    const s = (imp.scale||1.0)*(1+prog*12);
+    imp.mesh.scale.set(s,s,s);
+    imp.mesh.material.opacity = Math.max(0, 0.9*(1-prog));
+    if (imp.age >= imp.maxAge) { scene.remove(imp.mesh); impacts.splice(i,1); }
+  }
+
+  // Particles
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.age += dt; p.vy -= dt*0.18;
+    p.mesh.position.x += p.vx; p.mesh.position.y += p.vy; p.mesh.position.z += p.vz;
+    p.mesh.material.opacity = Math.max(0, 1-p.age/p.maxAge);
+    if (p.age >= p.maxAge) { scene.remove(p.mesh); particles.splice(i,1); }
+  }
+
+  water.material.opacity = 0.75 + Math.sin(t*1.4)*0.07;
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = heroEl.clientWidth / heroEl.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(heroEl.clientWidth, heroEl.clientHeight);
+});
+</script>
+</body>
+</html>
